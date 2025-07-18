@@ -1,0 +1,27 @@
+{% extends 'public/base_cpanel.html' %}
+{% block title %}Reasignar Niños{% endblock %}
+{% block body %}
+<div class="container mt-5">
+  <div class="alert alert-warning text-center">
+    <h4>Este terapeuta tiene {{ cantidad }} niño(s) a cargo.</h4>
+    <p>Debe reasignar los niños antes de eliminar el usuario.</p>
+    <ul class="list-group mb-3">
+      {% for nino in ninos %}
+        <li class="list-group-item">{{ nino.nombre_nino }} {{ nino.apellido_nino }}</li>
+      {% endfor %}
+    </ul>
+    <form method="POST" action="{{ url_for('reasignar_ninos', id_terapeuta_actual=id_terapeuta_actual) }}">
+      <div class="mb-3">
+        <label for="nuevo_terapeuta" class="form-label">Seleccione el nuevo terapeuta:</label>
+        <select class="form-select" name="nuevo_terapeuta" required>
+          <option value="" disabled selected>Seleccionar...</option>
+          {% for terapeuta in terapeutas %}
+            <option value="{{ terapeuta.id_usuario }}">{{ terapeuta.nombre_usuario }} {{ terapeuta.apellido_usuario }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <button type="submit" class="btn btn-primary">Reasignar y Eliminar Usuario</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

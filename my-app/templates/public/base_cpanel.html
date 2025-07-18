@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="es" class="light-style layout-menu-fixed" dir="ltr" data-theme="theme-default" data-assets-path="../assets/" data-template="vertical-menu-template-free">
+<head>
+  {% include 'public/includes/head.html' %}
+  {% block customCSS %}
+  <style>
+    body {
+      background: linear-gradient(135deg, #e0e7ff 0%, #ffe5b4 100%);
+      min-height: 100vh;
+    }
+
+    .welcome-message {
+      background: rgba(255,255,255,0.95);
+      border-radius: 16px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+      padding: 2rem 1.5rem;
+      text-align: center;
+      margin: 2rem auto;
+      max-width: 480px;
+      border: 2px solid #ff9800;
+    }
+
+    .welcome-message h1 {
+      color: #1976d2;
+      font-weight: 700;
+      letter-spacing: 1px;
+    }
+
+    .project-image-frame {
+      margin: 1.5rem auto 0 auto;
+      padding: 12px;
+      border: 3px solid #1976d2;
+      border-radius: 18px;
+      background: #fff;
+      max-width: 320px;
+      box-shadow: 0 2px 12px rgba(25,118,210,0.08);
+    }
+
+    .project-image-frame img {
+      display: block;
+      max-width: 100%;
+      border-radius: 12px;
+    }
+
+    .btn-primary, .btn-primary:active, .btn-primary:focus {
+      background-color: #1976d2 !important;
+      border-color: #1976d2 !important;
+    }
+
+    .btn-primary:hover {
+      background-color: #ff9800 !important;
+      border-color: #ff9800 !important;
+      color: #fff !important;
+    }
+
+    .form-control:focus, .form-select:focus {
+      border-color: #1976d2;
+      box-shadow: 0 0 0 0.2rem rgba(25,118,210,0.15);
+    }
+
+    label, .form-label {
+      color: #1976d2;
+      font-weight: 500;
+    }
+
+    .card {
+      border: 1.5px solid #ff9800;
+      border-radius: 18px;
+    }
+
+    a, .text-primary {
+      color: #1976d2 !important;
+    }
+
+    a:hover {
+      color: #ff9800 !important;
+    }
+  </style>
+  {% endblock %}
+</head>
+<body>
+  {% include 'public/includes/pre_loader.html' %}
+  {% include 'public/includes/navbar.html' %}
+  <div class="layout-wrapper layout-content-navbar">
+    <div class="layout-container">
+      {% include 'public/includes/menu_sidebar.html'%}
+      <div class="layout-page">
+        <div class="content-wrapper">
+          <div class="container-xxl flex-grow-1 container-p-y">
+            {% include 'public/includes/messages.html' %}
+
+            {% block body %}
+            {% if dataLogin.rol == 1 %}
+              <div class="welcome-message">
+                <h1>BIENVENIDO ADMINISTRADOR</h1>
+                <div class="project-image-frame">
+                  <img src="{{ url_for('static', filename='assets/img/piso_image.jpg') }}" alt="Imagen del Proyecto">
+                </div>
+              </div>
+            {% elif dataLogin.rol == 2 %}
+              <div class="welcome-message">
+                <h1>BIENVENIDO USUARIO</h1>
+                <div class="project-image-frame">
+                  <img src="{{ url_for('static', filename='assets/img/piso_image.jpg') }}" alt="Imagen del Proyecto">
+                </div>
+              </div>
+            {% elif dataLogin.rol == 3 %}
+              <div class="welcome-message">
+                <h1>BIENVENIDO TERAPEUTA</h1>
+                <div class="project-image-frame">
+                  <img src="{{ url_for('static', filename='assets/img/piso_image.jpg') }}" alt="Imagen del Proyecto">
+                </div>
+              </div>
+            {% endif %}
+            {% endblock %}
+          </div>
+          <div class="content-backdrop fade"></div>
+        </div>
+      </div>
+    </div>
+    <div class="layout-overlay layout-menu-toggle"></div>
+  </div>
+
+  {% include 'public/includes/js.html' %}
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const toastElList = [].slice.call(document.querySelectorAll('.toast'));
+      toastElList.forEach(toastEl => new bootstrap.Toast(toastEl, { delay: 4000 }).show());
+    });
+  </script>
+
+  {% block customJS %}{% endblock %}
+</body>
+</html>

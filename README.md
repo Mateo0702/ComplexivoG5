@@ -1,5 +1,4 @@
 # ComplexivoG5
-# ComplexivoG5
 🧠 Plataforma de Estimulación Sensorial Interactiva
 Este repositorio contiene el sistema desarrollado en Flask para gestionar un piso interactivo multisensorial, orientado a la estimulación en niños con trastornos del desarrollo.
 

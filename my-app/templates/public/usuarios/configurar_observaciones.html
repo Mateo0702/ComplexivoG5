@@ -1,0 +1,103 @@
+{% extends 'public/base_cpanel.html' %}
+{% block title %}Editar Observaciones{% endblock %}
+{% block body %}
+
+<div class="container mt-5">
+  <div class="card shadow-lg p-4 rounded-4">
+    <h3 class="mb-4 text-center">🛠️ Configuración de Observaciones</h3>
+
+    <ul class="nav nav-tabs mb-4" id="configTabs" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="baldosa-tab" data-bs-toggle="tab" data-bs-target="#baldosa" type="button" role="tab">Baldosas</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="sesion-tab" data-bs-toggle="tab" data-bs-target="#sesion" type="button" role="tab">Sesiones</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="color-tab" data-bs-toggle="tab" data-bs-target="#color" type="button" role="tab">Colores</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="juego-tab" data-bs-toggle="tab" data-bs-target="#juego" type="button" role="tab">Juego</button>
+      </li>
+    </ul>
+
+    <div class="tab-content" id="configTabsContent">
+
+      <!-- Baldosa -->
+      <div class="tab-pane fade show active" id="baldosa" role="tabpanel">
+        <form method="post">
+          <input type="hidden" name="tipo" value="baldosa">
+          {% for u in umbrales_baldosa %}
+            <div class="mb-3">
+              <input type="hidden" name="id[]" value="{{ u.id_criterio }}">
+              <label class="form-label">De <strong>{{ u.minimo }}</strong> a <strong>{{ u.maximo or 'más' }}</strong> pisadas:</label>
+              <textarea name="observacion[]" class="form-control" rows="2">{{ u.observacion }}</textarea>
+            </div>
+          {% endfor %}
+          <div class="text-end">
+            <button type="submit" class="btn btn-primary">💾 Guardar Cambios</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Sesión -->
+      <div class="tab-pane fade" id="sesion" role="tabpanel">
+        <form method="post">
+          <input type="hidden" name="tipo" value="sesion">
+          {% for u in umbrales_sesion %}
+            <div class="mb-3">
+              <input type="hidden" name="id[]" value="{{ u.id_criterio }}">
+              <label class="form-label">De <strong>{{ u.minimo }}</strong> a <strong>{{ u.maximo or 'más' }}</strong> pisadas totales:</label>
+              <textarea name="observacion[]" class="form-control" rows="2">{{ u.observacion }}</textarea>
+            </div>
+          {% endfor %}
+          <div class="text-end">
+            <button type="submit" class="btn btn-primary">💾 Guardar Cambios</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Color -->
+      <div class="tab-pane fade" id="color" role="tabpanel">
+        <form method="post">
+          <input type="hidden" name="tipo" value="color">
+          {% for a in atracciones_color %}
+            <div class="mb-3">
+              <input type="hidden" name="id[]" value="{{ a.id_atraccion }}">
+              <label class="form-label">Color <strong class="text-capitalize">{{ a.color }}</strong>:</label>
+              <textarea name="observacion[]" class="form-control" rows="2">{{ a.interpretacion }}</textarea>
+            </div>
+          {% endfor %}
+          <div class="text-end">
+            <button type="submit" class="btn btn-primary">💾 Guardar Cambios</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Juego -->
+      <div class="tab-pane fade" id="juego" role="tabpanel">
+        <form method="post">
+          <input type="hidden" name="tipo" value="juego">
+          {% for j in umbrales_juego %}
+            <div class="mb-3 border-bottom pb-3">
+              <input type="hidden" name="id[]" value="{{ j.id }}">
+              <label class="form-label">
+                Aciertos: <strong>{{ j.min_aciertos }}</strong> - <strong>{{ j.max_aciertos or 'más' }}</strong>, 
+                Errores: <strong>{{ j.min_errores }}</strong> - <strong>{{ j.max_errores or 'más' }}</strong><br>
+                Porcentaje: <strong>{{ j.min_porcentaje_acierto }}%</strong> - <strong>{{ j.max_porcentaje_acierto or 'más' }}%</strong>,
+                Tiempo promedio: <strong>{{ j.min_tiempo_promedio }}</strong> - <strong>{{ j.max_tiempo_promedio or 'más' }}</strong> seg
+              </label>
+              <textarea name="observacion[]" class="form-control" rows="2">{{ j.observacion }}</textarea>
+            </div>
+          {% endfor %}
+          <div class="text-end">
+            <button type="submit" class="btn btn-primary">💾 Guardar Cambios</button>
+          </div>
+        </form>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+{% endblock %}

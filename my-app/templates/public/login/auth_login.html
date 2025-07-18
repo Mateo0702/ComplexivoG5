@@ -1,0 +1,84 @@
+<div class="container-xxl min-vh-100 d-flex align-items-center justify-content-center" style="background: linear-gradient(135deg, #2196f3 0%, #43a047 70%, #ff6347 100%);">
+  <div class="authentication-wrapper authentication-basic container-p-y">
+    <div class="authentication-inner">
+      <div class="card shadow-lg border-0 rounded-4" style="min-width: 350px;">
+        <div class="card-body p-5">
+          <div class="app-brand justify-content-center mb-4">
+            <div class="d-flex align-items-center justify-content-center gap-4 flex-wrap">
+              <img
+                class="logo"
+                style="width: 90px; height: 90px; object-fit: contain; box-shadow: 0 2px 12px rgba(33,150,243,0.10); border-radius: 16px; background: #fff;"
+                src="{{ url_for('static', filename ='./assets/img/logo.png') }}"
+                alt="Logo" />
+              <div>
+                <h2 class="fw-bold mb-0" style="color: #2196f3; line-height: 1.1; font-size: 2.3rem;">Iniciar Sesión</h2>
+                <span class="text-muted" style="font-size: 1.1rem;">Bienvenido, por favor ingresa tus datos</span>
+              </div>
+            </div>
+          </div>
+
+          <form
+            id="formAuthentication"
+            class="mb-3"
+            action="{{ url_for('loginCliente') }}"
+            method="POST"
+            autocomplete="off">
+            <div class="mb-3">
+              <label for="cedula" class="form-label fw-semibold">Cédula</label>
+              <div class="input-group">
+                <span class="input-group-text bg-light"><i class="bi bi-person" style="color:#2196f3"></i></span>
+                <input
+                  type="text"
+                  class="form-control"
+                  name="cedula"
+                  placeholder="Escribe tu cédula"
+                  autofocus
+                  required />
+              </div>
+            </div>
+            <div class="mb-3 form-password-toggle">
+              <label class="form-label fw-semibold" for="password">Clave</label>
+              <div class="input-group input-group-merge">
+                <span class="input-group-text bg-light"><i class="bi bi-lock" style="color:#43a047"></i></span>
+                <input
+                  type="password"
+                  class="form-control"
+                  name="pass_user"
+                  id="pass_user"
+                  placeholder="Contraseña"
+                  aria-describedby="password"
+                  required />
+                <span class="input-group-text cursor-pointer" onclick="togglePassword()">
+                  <i class="bx bx-hide" id="togglePassIcon" style="color:#ff6347"></i>
+                </span>
+              </div>
+            </div>
+            <div class="mb-3">
+              <button class="btn w-100 py-2 fw-bold" type="submit" style="background: linear-gradient(90deg, #2196f3 60%, #43a047 100%); color: #fff;">
+                <i class="bi bi-box-arrow-in-right me-2"></i>Entrar ahora
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<script>
+function togglePassword() {
+  const passInput = document.getElementById('pass_user');
+  const icon = document.getElementById('togglePassIcon');
+  if (passInput.type === "password") {
+    passInput.type = "text";
+    icon.classList.remove('bx-hide');
+    icon.classList.add('bx-show');
+  } else {
+    passInput.type = "password";
+    icon.classList.remove('bx-show');
+    icon.classList.add('bx-hide');
+  }
+}
+</script>

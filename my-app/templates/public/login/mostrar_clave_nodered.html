@@ -1,0 +1,14 @@
+{% extends 'public/base_cpanel.html' %}
+{% block title %}Clave Node-RED{% endblock %}
+{% block body %}
+<div class="container mt-5">
+  <div class="alert alert-info text-center">
+    <h4>Su clave de Node-RED es:</h4>
+    <h2 style="letter-spacing:2px;">{{ clave_nodered }}</h2>
+    <p>Por favor, guárdela en un lugar seguro.</p>
+    <form action="{{ url_for('usuarios') }}">
+      <button type="submit" class="btn btn-primary mt-3">OK</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

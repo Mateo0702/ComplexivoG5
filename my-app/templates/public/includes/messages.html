@@ -1,0 +1,63 @@
+<style>
+  .custom-toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+  }
+
+  .custom-toast {
+    width: 280px;
+    border-radius: 15px;
+    padding: 20px;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    animation: fadeIn 0.5s ease, fadeOut 0.5s ease 3s forwards;
+    margin-bottom: 15px;
+  }
+
+  .toast-success {
+    background-color: #1976d2;
+  }
+
+  .toast-error {
+    background-color: #e53935;
+  }
+
+  .toast-icon {
+    font-size: 30px;
+  }
+
+  .toast-message {
+    flex: 1;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateX(50px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  @keyframes fadeOut {
+    to { opacity: 0; transform: translateX(50px); }
+  }
+</style>
+
+<div class="custom-toast-container">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="custom-toast {{ 'toast-success' if category == 'success' else 'toast-error' }}">
+          <div class="toast-icon">
+            {% if category == 'success' %}✅{% else %}❌{% endif %}
+          </div>
+          <div class="toast-message">
+            {{ message }}
+          </div>
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+</div>

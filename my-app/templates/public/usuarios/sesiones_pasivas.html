@@ -1,0 +1,181 @@
+{% extends 'public/base_cpanel.html' %}
+
+{% block title %}Sesiones Pasivas - Piso Mágico{% endblock %}
+
+{% block body %}
+<div class="container py-5">
+  <h2 class="text-center mb-4 text-black fw-bold">Empieza a interactuar</h2>
+
+  <div class="mb-4 text-center">
+    <label for="selectNino" class="text-blue fw-bold me-2">Selecciona un Niño:</label>
+    <select id="selectNino" class="form-select d-inline-block w-auto">
+      <option value="" disabled selected>Selecciona un niño...</option>
+      {% for n in ninos %}
+        <option value="{{ n.id_nino }}">
+          {{ n.nombre_nino }} {{ n.apellido_nino }} ({{ n.edad }} años)
+        </option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div class="d-flex justify-content-center mb-4">
+    <button id="btnIniciar" class="btn btn-success mx-2">Iniciar Actividad</button>
+    <button id="btnCerrar" class="btn btn-danger mx-2">Terminar Actividad</button>
+  </div>
+
+  <div class="d-flex justify-content-center">
+    <div id="marcoProyecto" class="marco-proyecto">
+      <img src="{{ url_for('static', filename='assets/img/pisomagico.jpg') }}" alt="Proyecto Piso Mágico" class="img-fluid rounded">
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block customJS %}
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+<script>
+  // Configuración Firebase
+  const firebaseConfig = {
+    apiKey: "AIzaSyDyqwLONWplUBvyJVM4AGaOaYYDW3gTCgg",
+    authDomain: "pisada-3031e.firebaseapp.com",
+    databaseURL: "https://pisada-3031e-default-rtdb.firebaseio.com",
+    projectId: "pisada-3031e",
+    storageBucket: "pisada-3031e.appspot.com",
+    messagingSenderId: "413565814159",
+    appId: "1:413565814159:web:3558f108e57c8fda20b7fa",
+    measurementId: "G-245STFJLSC"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+
+  function generarIdSesion() {
+    const ahora = new Date();
+    const dd = String(ahora.getDate()).padStart(2, '0');
+    const mm = String(ahora.getMonth() + 1).padStart(2, '0');
+    const yy = String(ahora.getFullYear()).slice(2);
+    const hh = String(ahora.getHours()).padStart(2, '0');
+    const min = String(ahora.getMinutes()).padStart(2, '0');
+    return `sesion${dd}${mm}${yy}${hh}${min}`;
+  }
+
+  async function verificarSesionActiva() {
+    const snapshot = await db.ref('sesiones_pasivas').get();
+    const sesiones = snapshot.val();
+    if (!sesiones) return null;
+
+    for (const [id, data] of Object.entries(sesiones)) {
+      if (data.estadosesion === 'iniciada') {
+        return { id, data };
+      }
+    }
+    return null;
+  }
+
+  async function iniciarSesionSiNoHayOtra(nino) {
+    const sesionActiva = await verificarSesionActiva();
+    if (sesionActiva) {
+      alert(`Ya hay una sesión activa (${sesionActiva.id}), ciérrala antes de iniciar una nueva.`);
+      return;
+    }
+
+    const idSesion = generarIdSesion();
+    const fechaActual = new Date();
+    const fechaLocalISO = fechaActual.toLocaleString('sv-SE', { timeZone: 'America/Guayaquil' }).replace(' ', 'T');
+
+    const datos = {
+      fechainicio: fechaLocalISO,
+      estadosesion: "iniciada",
+      nombrenino: nino.nombre,
+      edad: nino.edad,
+      globalpisadas: 0,
+      fechafin: ""
+    };
+
+    for (let i = 1; i <= 9; i++) {
+      datos[`piso${i}`] = {
+        logs: {},
+        [`totalpisadas${i}`]: 0
+      };
+    }
+
+    await db.ref('sesiones_pasivas/' + idSesion).set(datos);
+    alert(`Sesión iniciada: ${idSesion}`);
+  }
+
+  async function cerrarSesionActiva() {
+    const sesionActiva = await verificarSesionActiva();
+    if (!sesionActiva) {
+      alert('No hay una sesión activa actualmente.');
+      return;
+    }
+
+    const fechaActual = new Date();
+    const fechaLocalISO = fechaActual.toLocaleString('sv-SE', { timeZone: 'America/Guayaquil' }).replace(' ', 'T');
+
+    await db.ref('sesiones_pasivas/' + sesionActiva.id).update({
+      estadosesion: 'terminada',
+      fechafin: fechaLocalISO
+    });
+
+    alert(`Sesión ${sesionActiva.id} cerrada.`);
+  }
+
+  document.getElementById('btnIniciar').addEventListener('click', async () => {
+    const select = document.getElementById('selectNino');
+    const option = select.options[select.selectedIndex];
+    if (!option || !option.value) {
+      alert("Selecciona un niño para iniciar.");
+      return;
+    }
+
+    const nombre = option.textContent.split('(')[0].trim();
+    const edad = parseInt(option.textContent.match(/\d+/)[0]);
+    await iniciarSesionSiNoHayOtra({ nombre, edad });
+
+    // Cambia marco
+    const marco = document.getElementById('marcoProyecto');
+    marco.classList.remove('marco-rojo');
+    marco.classList.add('marco-verde');
+  });
+
+  document.getElementById('btnCerrar').addEventListener('click', async () => {
+    await cerrarSesionActiva();
+
+    const marco = document.getElementById('marcoProyecto');
+    marco.classList.remove('marco-verde');
+    marco.classList.add('marco-rojo');
+
+    // Llamar a Flask para guardar en MySQL
+    try {
+      const resp = await fetch("/guardar_sesion", {
+        method: "POST"
+      });
+      const text = await resp.text();
+      alert(text);
+    } catch (err) {
+      alert("Error al guardar sesión en MySQL: " + err);
+    }
+  });
+</script>
+
+<style>
+  .marco-proyecto {
+    border: 8px solid #ccc;
+    border-radius: 12px;
+    padding: 8px;
+    width: 100%;
+    max-width: 500px;
+    transition: border-color 0.3s, box-shadow 0.3s;
+  }
+  .marco-verde {
+    border-color: #4caf50 !important;
+    box-shadow: 0 0 15px rgba(76, 175, 80, 0.5);
+  }
+  .marco-rojo {
+    border-color: #f44336 !important;
+    box-shadow: 0 0 15px rgba(244, 67, 54, 0.5);
+  }
+</style>
+{% endblock %}

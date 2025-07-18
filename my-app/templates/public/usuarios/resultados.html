@@ -1,0 +1,456 @@
+{% extends 'public/base_cpanel.html' %}
+
+{% block title %}Resultados - Pisadas{% endblock %}
+
+{% block body %}
+<div class="container mt-5">
+
+  <h2 class="text-center mb-4">👣 Resultados de Pisadas</h2>
+
+  <!-- Filtro -->
+  <div class="row mb-4">
+    <div class="col-md-12">
+      <div class="card p-4 shadow-sm bg-light border-start border-primary border-4">
+        <form id="filtroForm" class="row g-3 align-items-end">
+          <div class="col-md-4">
+            <label for="ninoSelect" class="form-label fw-semibold">👦 Niño</label>
+            <select id="ninoSelect" class="form-select">
+              <option value="">Todos</option>
+              {% for n in ninos %}
+                <option value="{{ n.id_nino }}">
+                  {{ n.nombre_nino }} {{ n.apellido_nino }} ({{ n.edad }} años)
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label for="fechaInicio" class="form-label fw-semibold">📅 Fecha Inicio</label>
+            <input type="date" id="fechaInicio" class="form-control">
+          </div>
+          <div class="col-md-3">
+            <label for="fechaFin" class="form-label fw-semibold">📅 Fecha Fin</label>
+            <input type="date" id="fechaFin" class="form-control">
+          </div>
+          <div class="col-md-2 text-end">
+            <button type="submit" class="btn btn-outline-primary w-100">🔎 Filtrar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Total -->
+  <div class="row mb-4">
+    <div class="col-md-6 offset-md-3 text-center">
+      <div class="alert alert-info shadow-sm border-start border-info border-4">
+        Total pisadas registradas: <strong id="totalPisadas">0</strong>
+      </div>
+    </div>
+  </div>
+
+  <!-- Gráfica -->
+  <div class="row mb-4">
+    <div class="col-md-8 offset-md-2">
+      <div class="card shadow-sm p-3 bg-white">
+        <h5 class="text-center mb-3">📊 Distribución de Pisadas</h5>
+        <canvas id="graficaBaldosas"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Resumen -->
+  <div class="row mb-4">
+    <div class="col-md-8 offset-md-2">
+      <div class="card p-4 shadow-sm bg-light border-start border-success border-4" id="resumenPisadas" style="display: none;">
+        <h5 class="text-center mb-3">📌 Análisis de Preferencias por Baldosas</h5>
+        <div class="mb-3">
+          <strong>🌟 Baldosa más pisada:</strong>
+          <div id="baldosaMas" class="mt-1 ps-3"></div>
+        </div>
+        <div>
+          <strong>💤 Baldosa menos pisada:</strong>
+          <div id="baldosaMenos" class="mt-1 ps-3"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabla sesiones -->
+  <div class="row mb-4">
+    <div class="col-md-10 offset-md-1">
+      <div class="card p-3 shadow-sm">
+        <h5 class="text-center mb-3">📋 Historial de Sesiones</h5>
+        <div class="table-responsive">
+          <table id="tablaSesiones" class="table table-striped table-bordered shadow-sm">
+            <thead class="table-primary text-center">
+              <tr>
+                <th>Niño</th>
+                <th>Fecha Inicio</th>
+                <th>Fecha Fin</th>
+                <th>Total Pisadas</th>
+                <th>Observación</th>
+              </tr>
+            </thead>
+            <tbody class="text-center"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firma y Botón PDF -->
+  <div class="card shadow-sm p-4 mb-5">
+    <div class="row align-items-center">
+      <div class="col-md-6 mb-3 mb-md-0">
+        <label for="firmaCanvas" class="form-label fw-semibold">🖊️ Firma del terapeuta:</label>
+        <canvas id="firmaCanvas" width="300" height="100" class="border rounded border-2"></canvas>
+        <button type="button" class="btn btn-sm btn-outline-secondary mt-2" onclick="limpiarFirma()">🧹 Limpiar Firma</button>
+      </div>
+      <div class="col-md-6 text-md-end text-center">
+        <button class="btn btn-outline-danger btn-lg mt-3 mt-md-0" onclick="generarPDF()">
+          📄 Generar Informe en PDF
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+<style>
+  /* Estilo tabla moderna y limpia */
+.tabla-limpia {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: 'Segoe UI', sans-serif;
+  font-size: 15px;
+  background-color: #fff;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.tabla-limpia thead {
+  background-color: #eef2fb;
+  color: #333;
+}
+
+.tabla-limpia th,
+.tabla-limpia td {
+  padding: 12px 15px;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+
+.tabla-limpia tr:hover {
+  background-color: #f1f5ff;
+}
+
+</style>
+
+<!-- Firma Script -->
+<script>
+function limpiarFirma() {
+  const canvas = document.getElementById('firmaCanvas');
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  const canvas = document.getElementById('firmaCanvas');
+  const ctx = canvas.getContext('2d');
+  let isDrawing = false;
+
+  canvas.addEventListener('mousedown', () => { isDrawing = true; });
+  canvas.addEventListener('mouseup', () => { isDrawing = false; ctx.beginPath(); });
+  canvas.addEventListener('mouseout', () => { isDrawing = false; ctx.beginPath(); });
+  canvas.addEventListener('mousemove', (e) => {
+    if (!isDrawing) return;
+    const rect = canvas.getBoundingClientRect();
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = '#000';
+    ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+  });
+});
+</script>
+
+<!-- Scripts -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- Librerías necesarias -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<script>
+async function generarPDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF('p', 'mm', 'a4');
+
+  // Obtener datos del filtro y métricas
+  const nombreNino = document.getElementById('ninoSelect').selectedOptions[0]?.text || 'Todos';
+  const fechaInicio = document.getElementById('fechaInicio').value || 'N/A';
+  const fechaFin = document.getElementById('fechaFin').value || 'N/A';
+  const totalPisadas = document.getElementById('totalPisadas').innerText;
+
+  // Rutas de logos (usar ruta relativa desde /static/)
+  const logoEmpresaUrl = '/static/assets/img/logo_empresa.png';
+  const logoProductoUrl = '/static/assets/img/logo_producto.png';
+
+  // Convertir logos a base64
+  const logoEmpresa = await loadImage(logoEmpresaUrl);
+  const logoProducto = await loadImage(logoProductoUrl);
+
+  // Capturar gráfico como imagen
+  const canvasGrafico = document.getElementById('graficaBaldosas');
+  const graficoImgCanvas = await html2canvas(canvasGrafico);
+  const graficoData = graficoImgCanvas.toDataURL('image/png');
+
+  // Firma del terapeuta (si hay canvas con firma)
+  let firmaData = null;
+  const firmaCanvas = document.getElementById('firmaCanvas');
+  if (firmaCanvas) {
+    const firmaCanvasImg = await html2canvas(firmaCanvas);
+    firmaData = firmaCanvasImg.toDataURL('image/png');
+  }
+
+  // Encabezado con logos
+  doc.addImage(logoEmpresa, 'PNG', 10, 10, 40, 20);     // izquierda
+  doc.addImage(logoProducto, 'PNG', 160, 10, 40, 20);   // derecha
+
+  doc.setFontSize(16);
+  doc.text('Informe de Análisis de Pisadas', 105, 35, { align: 'center' });
+
+  // Datos del paciente y terapeuta
+  doc.setFontSize(10);
+  doc.text(`Paciente: ${nombreNino}`, 10, 45);
+  doc.text(`Fecha: ${fechaInicio} a ${fechaFin}`, 10, 50);
+  doc.text(`Total pisadas registradas: ${totalPisadas}`, 10, 55);
+  doc.text(`Terapeuta: {{ terapeuta.nombre_usuario }} {{ terapeuta.apellido_usuario }}`, 10, 60);
+
+  // Imagen del gráfico
+  doc.addImage(graficoData, 'PNG', 15, 70, 180, 70);
+
+  // Resumen de preferencias (texto limpio)
+  // Capturar y limpiar textos
+  // Obtener contenido limpio
+  const resumenMasRaw = document.getElementById('baldosaMas')?.innerText.trim() || '';
+  const resumenMenosRaw = document.getElementById('baldosaMenos')?.innerText.trim() || '';
+
+  // Eliminar caracteres no imprimibles y normalizar espacios
+  function limpiarTexto(texto) {
+    return texto
+      .replace(/[^\x20-\x7EÀ-ÿ]/g, '') // remueve caracteres no imprimibles, excepto acentos
+      .replace(/\s+/g, ' ')            // múltiples espacios a uno solo
+      .trim();
+  }
+
+  const resumenMas = limpiarTexto(resumenMasRaw);
+  const resumenMenos = limpiarTexto(resumenMenosRaw);
+
+  // Dividir en líneas automáticas
+  const docMarginLeft = 10;
+  const docMaxWidth = 190;
+  let yPos = 150;
+
+  doc.setFontSize(12);
+  doc.text('Resumen de Preferencias:', docMarginLeft, yPos);
+  yPos += 8;
+
+  doc.setFontSize(10);
+  const masLines = doc.splitTextToSize(`Más pisada: ${resumenMas}`, docMaxWidth);
+  const menosLines = doc.splitTextToSize(`Menos pisada: ${resumenMenos}`, docMaxWidth);
+
+  // Imprimir líneas de forma segura
+  masLines.forEach(line => {
+    if (yPos + 6 > 285) { doc.addPage(); yPos = 20; }
+    doc.text(line, docMarginLeft, yPos);
+    yPos += 6;
+  });
+
+menosLines.forEach(line => {
+  if (yPos + 6 > 285) { doc.addPage(); yPos = 20; }
+  doc.text(line, docMarginLeft, yPos);
+  yPos += 6;
+});
+
+  // Firma (si existe)
+  if (firmaData) {
+    doc.setFontSize(10);
+    doc.text('Firma del terapeuta:', 10, yPos + 10);
+    doc.addImage(firmaData, 'PNG', 10, yPos + 15, 60, 20); // tamaño aprox
+  }
+
+  // Pie de página
+  doc.setFontSize(8);
+  doc.text('Este informe es generado automáticamente por el sistema de análisis terapéutico.', 10, 290);
+
+  // Descargar
+  const filename = `reporte_pisadas_${nombreNino.replace(/\s/g, "_")}.pdf`;
+  doc.save(filename);
+}
+
+// Función para cargar imagen y convertir a base64
+function loadImage(url) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = "Anonymous";
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.width;
+      canvas.height = img.height;
+      canvas.getContext("2d").drawImage(img, 0, 0);
+      resolve(canvas.toDataURL("image/png"));
+    };
+    img.src = url;
+  });
+}
+</script>
+
+<script>
+let graficaBaldosasInstance = null;
+let tablaSesionesInstance = null;
+
+function colorReal(color){
+  switch(color){
+    case 'verde': return 'rgba(0, 200, 83, 0.7)';
+    case 'amarillo': return 'rgba(255, 235, 59, 0.7)';
+    case 'celeste': return 'rgba(3, 169, 244, 0.7)';
+    case 'verde oscuro': return 'rgba(0, 100, 0, 0.7)';
+    default: return 'rgba(150,150,150,0.7)';
+  }
+}
+
+function cargarResultados(){
+  const idNino = document.getElementById('ninoSelect').value;
+  const fechaInicio = document.getElementById('fechaInicio').value;
+  const fechaFin = document.getElementById('fechaFin').value;
+
+  let url = `/resultados_datos?`;
+  if (idNino) url += `id_nino=${idNino}&`;
+  if (fechaInicio && fechaFin) url += `fecha_inicio=${fechaInicio}&fecha_fin=${fechaFin}`;
+
+  fetch(url)
+    .then(response => response.json())
+    .then(data => {
+      actualizarGraficaBaldosas(data.baldosas);
+      actualizarTablaSesiones(data.sesiones);
+      document.getElementById('totalPisadas').innerText = data.total_global;
+
+      if (data.resumen && data.resumen.mas_pisada) {
+        document.getElementById("resumenPisadas").style.display = "block";
+        document.getElementById("baldosaMas").innerHTML = `
+          <div>
+            <strong>Baldosa ${data.resumen.mas_pisada.baldosa}</strong>
+            <span class="badge bg-success">${data.resumen.mas_pisada.color}</span>
+          </div>
+          <div class="text-muted fst-italic small">
+            ${data.resumen.mas_pisada.descripcion}
+          </div>
+          <div class="mt-1">
+            <strong>${data.resumen.mas_pisada.pisadas}</strong> pisadas
+            <small class="text-secondary">(${data.resumen.mas_pisada.observacion})</small>
+          </div>
+          <div class="mt-2 alert alert-light border-start border-4 border-success py-1 px-2 small">
+            🧠 <strong>Interpretación:</strong> ${data.resumen.mas_pisada.interpretacion}
+          </div>
+        `;
+
+        document.getElementById("baldosaMenos").innerHTML = `
+          <div>
+            <strong>Baldosa ${data.resumen.menos_pisada.baldosa}</strong>
+            <span class="badge bg-secondary">${data.resumen.menos_pisada.color}</span>
+          </div>
+          <div class="text-muted fst-italic small">
+            ${data.resumen.menos_pisada.descripcion}
+          </div>
+          <div class="mt-1">
+            <strong>${data.resumen.menos_pisada.pisadas}</strong> pisadas
+            <small class="text-secondary">(${data.resumen.menos_pisada.observacion})</small>
+          </div>
+        `;
+      } else {
+        document.getElementById("resumenPisadas").style.display = "none";
+      }
+    })
+    .catch(error => console.error('Error:', error));
+}
+
+function actualizarGraficaBaldosas(baldosas){
+  const ctx = document.getElementById('graficaBaldosas').getContext('2d');
+  const etiquetas = baldosas.map(b => `Baldosa ${b.baldosa}`);
+  const valores = baldosas.map(b => b.total_pisadas);
+  const colores = baldosas.map(b => colorReal(b.color));
+  const interpretaciones = baldosas.map(b => `${b.color} - ${b.interpretacion}`);
+
+  if(graficaBaldosasInstance){
+    graficaBaldosasInstance.destroy();
+  }
+
+  graficaBaldosasInstance = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: etiquetas,
+      datasets: [{
+        label: 'Pisadas por Baldosa',
+        data: valores,
+        backgroundColor: colores
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        tooltip: {
+          callbacks: {
+            afterLabel: function(context){
+              const i = context.dataIndex;
+              return ` ${interpretaciones[i]}`;
+            }
+          }
+        },
+        title: {
+          display: true,
+          text: 'Distribución de Pisadas y Preferencias por Color'
+        }
+      },
+      scales: { y: { beginAtZero: true } }
+    }
+  });
+}
+
+function actualizarTablaSesiones(sesiones) {
+  if (tablaSesionesInstance) {
+    tablaSesionesInstance.clear().destroy();
+  }
+
+  const tbody = document.querySelector('#tablaSesiones tbody');
+  tbody.innerHTML = '';
+  sesiones.forEach(s => {
+    const row = `<tr>
+      <td>${s.nombre_nino}</td>
+      <td>${s.fecha_inicio}</td>
+      <td>${s.fecha_fin || ''}</td>
+      <td>${s.total_pisadas}</td>
+      <td>${s.observacion_global || ''}</td>
+    </tr>`;
+    tbody.insertAdjacentHTML('beforeend', row);
+  });
+
+  tablaSesionesInstance = new DataTable('#tablaSesiones', {
+    searching: false,
+    lengthChange: false,
+    paging: false,
+    info: false,
+  });
+}
+
+document.getElementById('filtroForm').addEventListener('submit', function(e){
+  e.preventDefault();
+  cargarResultados();
+});
+document.addEventListener('DOMContentLoaded', cargarResultados);
+</script>
+{% endblock %}

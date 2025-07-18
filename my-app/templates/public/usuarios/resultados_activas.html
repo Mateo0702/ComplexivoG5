@@ -1,0 +1,200 @@
+{% extends 'public/base_cpanel.html' %}
+{% block title %}Resultados - Modo Activo{% endblock %}
+
+{% block body %}
+
+<div class="container mt-5">
+  <h2 class="text-center mb-4">📊 Resultados - Sesiones Activas</h2>
+
+  <!-- Filtro -->
+  <form id="filtroForm" class="row g-3 mb-4 p-3 border rounded shadow-sm bg-light">
+    <div class="col-md-4">
+      <label for="ninoSelect" class="form-label">👦 Niño</label>
+      <select id="ninoSelect" class="form-select">
+        <option value="">Todos</option>
+        {% for n in ninos %}
+          <option value="{{ n.id_nino }}">
+            {{ n.nombre_nino }} {{ n.apellido_nino }} ({{ n.edad }} años)
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-3">
+      <label for="fechaInicio" class="form-label">📅 Fecha Inicio</label>
+      <input type="date" id="fechaInicio" class="form-control">
+    </div>
+    <div class="col-md-3">
+      <label for="fechaFin" class="form-label">📅 Fecha Fin</label>
+      <input type="date" id="fechaFin" class="form-control">
+    </div>
+    <div class="col-md-2 text-end">
+      <button type="submit" class="btn btn-primary w-100"><i class="bi bi-funnel-fill"></i> Filtrar</button>
+    </div>
+  </form>
+
+  <!-- Estadísticas -->
+  <div class="row mt-4 mb-4">
+    <div class="col-md-6">
+      <div class="alert alert-primary text-center shadow-sm">
+        ⏱️ Tiempo Promedio Global: <strong id="tiempoPromedio">0</strong> segundos
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="alert alert-success text-center shadow-sm">
+        🔍 Sesiones encontradas: <strong id="totalSesiones">0</strong>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabla de sesiones -->
+  <div class="table-responsive">
+    <table id="tablaSesionesActivas" class="table table-hover table-bordered shadow-sm">
+      <thead class="table-dark text-center">
+        <tr>
+          <th>Niño</th>
+          <th>Inicio</th>
+          <th>Fin</th>
+          <th>Aciertos</th>
+          <th>Errores</th>
+          <th>Tiempo Prom.</th>
+          <th>Observación</th>
+        </tr>
+      </thead>
+      <tbody class="text-center"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+  let tabla;
+
+  function cargarResultados() {
+    const idNino = document.getElementById('ninoSelect').value;
+    const fechaInicio = document.getElementById('fechaInicio').value;
+    const fechaFin = document.getElementById('fechaFin').value;
+
+    let url = `/resultados_activas_datos?`;
+    if (idNino) url += `id_nino=${idNino}&`;
+    if (fechaInicio && fechaFin) url += `fecha_inicio=${fechaInicio}&fecha_fin=${fechaFin}`;
+
+    fetch(url)
+      .then(response => response.json())
+      .then(data => {
+        document.getElementById("tiempoPromedio").innerText = data.tiempo_promedio;
+        document.getElementById("totalSesiones").innerText = data.sesiones.length;
+
+        const tbody = document.querySelector("#tablaSesionesActivas tbody");
+        tbody.innerHTML = "";
+
+        let totalAciertos = 0, totalErrores = 0;
+
+        data.sesiones.forEach(s => {
+          tbody.insertAdjacentHTML("beforeend", `
+            <tr>
+              <td>${s.nombre_nino}</td>
+              <td>${s.fecha_inicio}</td>
+              <td>${s.fecha_fin || ''}</td>
+              <td>${s.total_aciertos}</td>
+              <td>${s.total_errores}</td>
+              <td>${s.tiempo_promedio} s</td>
+              <td>${s.observacion_global || ''}</td>
+            </tr>
+          `);
+          totalAciertos += s.total_aciertos;
+          totalErrores += s.total_errores;
+        });
+
+        if (tabla) tabla.destroy();
+        tabla = new DataTable("#tablaSesionesActivas");
+
+        const totalIntentos = totalAciertos + totalErrores;
+        const porcentajeAciertos = totalIntentos ? (totalAciertos / totalIntentos * 100).toFixed(1) : 0;
+        const porcentajeErrores = totalIntentos ? (totalErrores / totalIntentos * 100).toFixed(1) : 0;
+
+        // Reemplazar esto en el fetch().then(data => {...})
+        if (window.gaugeAciertos) window.gaugeAciertos.destroy();
+        if (window.gaugeErrores) window.gaugeErrores.destroy();
+
+        // === Gauge Aciertos ===
+        const ctxGaugeA = document.getElementById('gaugeAciertos').getContext('2d');
+        window.gaugeAciertos = new Chart(ctxGaugeA, {
+        type: 'doughnut',
+        data: {
+            labels: ['Aciertos', 'Resto'],
+            datasets: [{
+            data: [totalAciertos, totalErrores || 1],  // mostrar el valor absoluto
+            backgroundColor: ['#4caf50', '#e0e0e0'],
+            borderWidth: 0,
+            cutout: '80%',
+            circumference: 180,
+            rotation: -90
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+            tooltip: { enabled: true },
+            legend: { display: false },
+            title: {
+                display: true,
+                text: `${totalAciertos} Aciertos`,
+                position: 'bottom',
+                font: {
+                size: 16,
+                weight: 'bold'
+                }
+            }
+            }
+        }
+        });
+
+        // === Gauge Errores ===
+        const ctxGaugeE = document.getElementById('gaugeErrores').getContext('2d');
+        window.gaugeErrores = new Chart(ctxGaugeE, {
+        type: 'doughnut',
+        data: {
+            labels: ['Errores', 'Resto'],
+            datasets: [{
+            data: [totalErrores, totalAciertos || 1],
+            backgroundColor: ['#f44336', '#e0e0e0'],
+            borderWidth: 0,
+            cutout: '80%',
+            circumference: 180,
+            rotation: -90
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+            tooltip: { enabled: true },
+            legend: { display: false },
+            title: {
+                display: true,
+                text: `${totalErrores} Errores`,
+                position: 'bottom',
+                font: {
+                size: 16,
+                weight: 'bold'
+                }
+            }
+            }
+        }
+        });
+      })
+      .catch(err => console.error("Error:", err));
+  }
+
+  document.getElementById("filtroForm").addEventListener("submit", e => {
+    e.preventDefault();
+    cargarResultados();
+  });
+
+  document.addEventListener("DOMContentLoaded", cargarResultados);
+</script>
+{% endblock %}
